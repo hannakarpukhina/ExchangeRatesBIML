@@ -1,0 +1,11 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
+/ExchangeRatesBIML/bin/Development
+/ExchangeRatesBIML/obj/Development
+*.dtsx
+/ExchangeRatesBIML/ExchangeRatesBIML.database
+/ExchangeRatesBIML/ExchangeRatesBIML.dtproj.user
+/ExchangeRatesBIML/Project.params
