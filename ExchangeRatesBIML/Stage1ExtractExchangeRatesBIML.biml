@@ -1,49 +1,79 @@
 ﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
+    <FileFormats>
+        <FlatFileFormat Name = "jsonFile" RowDelimiter="CRLF" ColumnNamesInFirstDataRow="true" IsUnicode="false">
+            <Columns>
+                <Column Name = "FileBody" Delimiter="LF" />
+            </Columns>
+        </FlatFileFormat> 
+    </FileFormats>
     <Connections>
         <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
-    </Connections>
+        <FlatFileConnection Name="JsonFile" FilePath="" FileFormat="jsonFile" />
+          </Connections>
             <Packages>
-                <Package ConstraintMode = "Linear" Name = "Stage1ExtractExchangeRatesBIML">
-                    <Parameters>
-                        <Parameter Name = "APIKey" DataType = "String">tteesstt</Parameter>
-                        <Parameter Name = "AsOfDate" DataType = "String">latest</Parameter>
-                        <Parameter Name = "BaseRatesAPIURL" DataType = "String">http://api.exchangeratesapi.io/v1/</Parameter>
-                        <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
-                        <Parameter Name = "KeySuffixRatesAPIURL" DataType = "String">?access_key=</Parameter>
-                    </Parameters>
-                    <Variables>
-                        <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
-                        <Variable Name="AsOfDateSuffixName" DataType="String" EvaluateAsExpression = "true">"_" + REPLACE(REPLACE(REPLACE(SUBSTRING((DT_STR,30, 1252)@[System::StartTime] , 1, 18),"-","")," ",""),":","") +"_" +  @[$Package::AsOfDate] + ".json"</Variable>
-                        <Variable Name="BaseFolderPath" DataType="String" EvaluateAsExpression = "true">"C:\\SSISGH\\slz\\exchangeratesapi\\" + SUBSTRING((DT_STR,30, 1252) @[System::StartTime] , 1, 10) + "\\"</Variable>
-                        <Variable Name="BaseSourcePath" DataType="String" EvaluateAsExpression = "true">@[$Package::BaseRatesAPIURL] +  @[$Package::AsOfDate] +  @[$Package::KeySuffixRatesAPIURL] + @[$Package::APIKey]</Variable>
-                        <Variable Name="GuidSuffixName" DataType="String"></Variable>
-                        <Variable Name="StringFileConnection" DataType="String" EvaluateAsExpression = "true">@[User::BaseFolderPath] +  @[User::GuidSuffixName] +  @[User::AsOfDateSuffixName]</Variable>
-                    </Variables>
-                        <Tasks>
-                            <ExecuteSQL Name = "Generate guid" ResultSet = "SingleRow" ConnectionName = "LocalHost.WorkFlow">
-                               <DirectInput>
-                                  SELECT CAST(NEWID() AS VARCHAR(36)) AS GuidSuffixName  
-                                </DirectInput>
-                                    <Results>
-                                        <Result Name="GuidSuffixName" VariableName = "User.GuidSuffixName"/>
-                                    </Results>
-                            </ExecuteSQL>
-                            <Script ProjectCoreName="ST_DowloadJsonFileFromAPI" Name="Dowload json file from API">
-                                <ScriptTaskProjectReference ScriptTaskProjectName="ST_DowloadJsonFileFromAPI" />
-                            </Script>
-                        </Tasks>
+                    <Package ConstraintMode = "Linear" Name = "Stage1ExtractExchangeRatesBIML">
+                        <Parameters>
+                            <Parameter Name = "APIKey" DataType = "String">tteesstt</Parameter>
+                            <Parameter Name = "AsOfDate" DataType = "String">latest</Parameter>
+                            <Parameter Name = "BaseRatesAPIURL" DataType = "String">http://api.exchangeratesapi.io/v1/</Parameter>
+                            <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
+                            <Parameter Name = "KeySuffixRatesAPIURL" DataType = "String">?access_key=</Parameter>
+                        </Parameters>
+                        <Variables>
+                            <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
+                            <Variable Name="AsOfDateSuffixName" DataType="String" EvaluateAsExpression = "true">"_" + REPLACE(REPLACE(REPLACE(SUBSTRING((DT_STR,30, 1252)@[System::StartTime] , 1, 18),"-","")," ",""),":","") +"_" +  @[$Package::AsOfDate] + ".json"</Variable>
+                            <Variable Name="BaseFolderPath" DataType="String" EvaluateAsExpression = "true">"C:\\SSISGH\\slz\\exchangeratesapi\\" + SUBSTRING((DT_STR,30, 1252) @[System::StartTime] , 1, 10) + "\\"</Variable>
+                            <Variable Name="BaseSourcePath" DataType="String" EvaluateAsExpression = "true">@[$Package::BaseRatesAPIURL] +  @[$Package::AsOfDate] +  @[$Package::KeySuffixRatesAPIURL] + @[$Package::APIKey]</Variable>
+                            <Variable Name="GuidSuffixName" DataType="String"></Variable>
+                            <Variable Name="StringFileConnection" DataType="String" EvaluateAsExpression = "true">@[User::BaseFolderPath] +  @[User::GuidSuffixName] +  @[User::AsOfDateSuffixName]</Variable>
+                        </Variables>
+                            <Tasks>
+                                <ExecuteSQL Name = "Generate guid" ResultSet = "SingleRow" ConnectionName = "LocalHost.WorkFlow">
+                                   <DirectInput>
+                                      SELECT CAST(NEWID() AS VARCHAR(36)) AS GuidSuffixName  
+                                    </DirectInput>
+                                        <Results>
+                                            <Result Name="GuidSuffixName" VariableName = "User.GuidSuffixName"/>
+                                        </Results>
+                                </ExecuteSQL>
+                                <Script ProjectCoreName="ST_DowloadJsonFileFromAPI" Name="Dowload json file from API">
+                                    <ScriptTaskProjectReference ScriptTaskProjectName="ST_DowloadJsonFileFromAPI" />
+                                </Script>
+                                <Dataflow Name = "Import json stage1">
+                                    <Transformations>
+                                        <FlatFileSource Name = "API result" ConnectionName="JsonFile" />
+                                        <DerivedColumns Name= "Add metadata columns">
+                                            <Columns>
+                                                <Column Name="FilePath" DataType="AnsiString" Length = "1000" CodePage="1252">@[User::BaseFolderPath]</Column>
+                                                <Column Name="CreatedDate" DataType="Date">@[System::StartTime]</Column>
+                                                <Column Name="ExecutionId" DataType="Int16">@[$Package::ExecutionId]</Column>    
+                                            </Columns>
+                                        </DerivedColumns>
+                                        <OleDbDestination Name="stage1 exchangeratesapi" ConnectionName ="LocalHost.WorkFlow">
+                                            <ExternalTableOutput Table = "[stage1].[ExchangeRatesAPI]" />
+                                        </OleDbDestination>
+                                    </Transformations>
+                                </Dataflow>
+                            </Tasks>
+                        <Connections>
+                <Connection ConnectionName="JsonFile">
+                    <Expressions>
+                        <Expression ExternalProperty="ConnectionString">@[User::StringFileConnection]</Expression>
+                    </Expressions>
+                </Connection>
+            </Connections>
                 </Package>
             </Packages>
-                <ScriptProjects>
-                    <ScriptTaskProject ProjectCoreName = "ST_DowloadJsonFileFromAPI" Name = "ST_DowloadJsonFileFromAPI">
-                        <ReadOnlyVariables>
-                            <Variable VariableName="AsOfDateSuffixName" DataType="String" />
-                            <Variable VariableName="BaseFolderPath" DataType="String" />
-                            <Variable VariableName="BaseSourcePath" DataType="String" />
-                            <Variable VariableName="GuidSuffixName" DataType="String" />
-                </ReadOnlyVariables>
-                <Files>
-                    <File Path="ScriptMain.cs" BuildAction="Compile">
+            <ScriptProjects>
+                <ScriptTaskProject ProjectCoreName = "ST_DowloadJsonFileFromAPI" Name = "ST_DowloadJsonFileFromAPI">
+                    <ReadOnlyVariables>
+                        <Variable VariableName="AsOfDateSuffixName" DataType="String" />
+                        <Variable VariableName="BaseFolderPath" DataType="String" />
+                        <Variable VariableName="BaseSourcePath" DataType="String" />
+                        <Variable VariableName="GuidSuffixName" DataType="String" />
+            </ReadOnlyVariables>
+            <Files>
+                <File Path="ScriptMain.cs" BuildAction="Compile">
 using System;
 using System.Data;
 using Microsoft.SqlServer.Dts.Runtime;
