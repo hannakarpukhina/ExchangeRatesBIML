@@ -1,0 +1,106 @@
+﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
+     <Connections>
+        <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+    </Connections>
+        <Packages>
+            <Package ConstraintMode = "Parallel" Name = "Stage3LoadExchangeRateBIML">
+                <Tasks>
+                    <Dataflow Name = "dim Currency">
+                        <Transformations>
+                            <OleDbSource Name="stage2 Currency" ConnectionName="LocalHost.WorkFlow">
+                                <DirectInput>SELECT DISTINCT
+                                            	 stage2.CurrencyId
+                                            	,stage2.CurrencyCodeISO3
+                                            	,stage2.CurrencyCodeISO2
+                                            	,stage2.StartDate
+                                            	,stage2.CountryName
+                                            FROM [stage2].[Currency] stage2
+                                            	LEFT OUTER JOIN [dim].[Currency] dim ON dim.CurrencyId = stage2.CurrencyId
+                                            WHERE dim.CurrencyId IS NULL
+                                </DirectInput>
+                            </OleDbSource>
+                            <OleDbCommand Name="dim Currency" ConnectionName="LocalHost.WorkFlow">
+                                <DirectInput>SET IDENTITY_INSERT [dim].[Currency] ON
+                                            INSERT INTO [dim].[Currency] (CurrencyId, CurrencyCodeISO3,CurrencyCodeISO2, StartDate, CountryName) 
+                                            SELECT DISTINCT
+                                            	 stage2.CurrencyId
+                                            	,stage2.CurrencyCodeISO3
+                                            	,stage2.CurrencyCodeISO2
+                                            	,stage2.StartDate
+                                            	,stage2.CountryName
+                                            FROM [stage2].[Currency] stage2
+                                            	LEFT OUTER JOIN [dim].[Currency] dim ON dim.CurrencyId = [stage2].[CurrencyId]
+                                            WHERE dim.CurrencyId IS NULL
+                                            SET IDENTITY_INSERT [dim].[Currency] OFF
+                                </DirectInput>
+                            </OleDbCommand>
+                        </Transformations>
+                    </Dataflow>
+                     <Dataflow Name = "sales ExchangeRate">
+                        <Transformations>
+                            <OleDbSource Name="stage2 ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                                <DirectInput>SELECT  
+                                        	 stage2.CurrencyId
+                                        	,stage2.EffectiveDate
+                                        	,stage2.BaseCurrencyId
+                                        	,stage2.Rate
+                                        	,stage2.[Timestamp]
+                                        	,stage2.InsertedDate
+                                        FROM (
+                                        		SELECT
+                                        			 CurrencyId
+                                        			,EffectiveDate
+                                        			,BaseCurrencyId
+                                        			,Rate
+                                        			,[Timestamp]
+                                        			,InsertedDate
+                                        			,ROW_NUMBER() OVER(PARTITION BY CurrencyId, EffectiveDate ORDER BY [Timestamp] DESC) AS LastRate
+                                        		FROM [stage2].[ExchangeRate]
+                                        	 ) stage2
+                                        	LEFT OUTER JOIN [sales].[ExchangeRate] sales ON sales.CurrencyId = stage2.CurrencyId
+                                        											AND sales.EffectiveDate = stage2.EffectiveDate
+                                        WHERE sales.CurrencyId IS NULL 
+                                        	AND stage2.LastRate = 1
+                                </DirectInput>
+                            </OleDbSource>
+                            <OleDbCommand Name="sales ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                                <DirectInput>MERGE [sales].[ExchangeRate] AS trg 
+                                                USING (SELECT  
+                                            			 stage2.CurrencyId
+                                            			,stage2.EffectiveDate
+                                            			,stage2.BaseCurrencyId
+                                            			,stage2.Rate
+                                            			,stage2.[Timestamp]
+                                            			,stage2.InsertedDate
+                                            		FROM (
+                                            				SELECT
+                                            					 CurrencyId
+                                            					,EffectiveDate
+                                            					,BaseCurrencyId
+                                            					,Rate
+                                            					,[Timestamp]
+                                            					,InsertedDate
+                                            					,ROW_NUMBER() OVER(PARTITION BY CurrencyId, EffectiveDate ORDER BY [Timestamp] DESC) AS LastRate
+                                            				FROM [stage2].[ExchangeRate]
+                                            			 ) stage2
+                                            			LEFT OUTER JOIN [sales].[ExchangeRate] sales ON sales.CurrencyId = stage2.CurrencyId
+                                            													AND sales.EffectiveDate = stage2.EffectiveDate
+                                            		WHERE sales.CurrencyId IS NULL 
+                                            			AND stage2.LastRate = 1) AS srs
+                                            ON (srs.CurrencyId = trg.CurrencyId AND srs.EffectiveDate = trg.EffectiveDate)
+                                            WHEN MATCHED
+                                                THEN UPDATE SET 
+                                                   trg.Rate = srs.Rate,
+                                                   trg.[Timestamp] = srs.[Timestamp]
+                                            WHEN NOT MATCHED 
+                                                THEN INSERT (CurrencyId, EffectiveDate, BaseCurrencyId, Rate, [Timestamp], InsertedDate)
+                                            	VALUES (srs.CurrencyId, srs.EffectiveDate, srs.BaseCurrencyId, srs.Rate, srs.[Timestamp], srs.InsertedDate)
+                                            ;
+                                </DirectInput>
+                            </OleDbCommand>
+                        </Transformations>
+                    </Dataflow>
+                 </Tasks>
+            </Package>
+        </Packages>
+</Biml>
