@@ -1,0 +1,41 @@
+﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
+    <Packages>
+        <Package ConstraintMode = "Linear" Name = "MainBIML">
+            <Parameters>
+                <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
+            </Parameters>
+            <Variables>
+                <Variable Name="ExecutionId" DataType="Int64">0</Variable>
+            </Variables>
+                <Tasks>
+                    <Expression Name="Get ExecutionId"
+                                Expression="@[User::ExecutionId] = @[$Package::ExecutionId] != 0? @[$Package::ExecutionId]  : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),&quot;-&quot;,&quot;&quot;),&quot; &quot;,&quot;&quot;),&quot;:&quot;,&quot;&quot;),&quot;.&quot;,&quot;&quot;)">
+                    </Expression>
+                    <ExecutePackage Name="Execute Stage1DownloadExchangeRates" DelayValidation="true">
+                        <ExternalProjectPackage Package="Stage1ExtractExchangeRates.dtsx"></ExternalProjectPackage>
+                            <ParameterBindings>
+                                <ParameterBinding VariableName="User.ExecutionId" Name="ExecutionId"></ParameterBinding>
+                            </ParameterBindings>
+                    </ExecutePackage>
+                    <ExecutePackage Name="Execute Stage2TransformExcahngeRates" DelayValidation="true">
+                        <ExternalProjectPackage Package="Stage2TransformExchangeRates.dtsx"></ExternalProjectPackage>
+                            <ParameterBindings>
+                                <ParameterBinding VariableName="User.ExecutionId" Name="ExecutionId"></ParameterBinding>
+                            </ParameterBindings>
+                    </ExecutePackage>
+                    <ExecutePackage Name="Execute Stage3LoadExchangeRate" DelayValidation="true">
+                        <ExternalProjectPackage Package="Stage3LoadExchangeRate.dtsx"></ExternalProjectPackage>
+                            <ParameterBindings>
+                                <ParameterBinding VariableName="User.ExecutionId" Name="ExecutionId"></ParameterBinding>
+                            </ParameterBindings>
+                    </ExecutePackage>
+                    <ExecutePackage Name="Execute ClearStaging" DelayValidation="true">
+                        <ExternalProjectPackage Package="ClearStaging.dtsx"></ExternalProjectPackage>
+                            <ParameterBindings>
+                                <ParameterBinding VariableName="User.ExecutionId" Name="ExecutionId"></ParameterBinding>
+                            </ParameterBindings>
+                    </ExecutePackage>
+                </Tasks>
+        </Package>
+    </Packages>
+</Biml>
