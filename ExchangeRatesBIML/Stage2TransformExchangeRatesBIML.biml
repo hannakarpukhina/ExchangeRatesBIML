@@ -1,0 +1,64 @@
+﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
+    <Connections>
+        <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+    </Connections>
+        <Packages>
+            <Package ConstraintMode = "Linear" Name = "Stage2TransformExchangeRatesBIML">
+                <Parameters>
+                    <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
+                </Parameters>
+                <Variables>
+                    <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
+                 </Variables>
+                    <Tasks>
+                        <ExecuteSQL Name = "Check if file is valid JSON" ConnectionName = "LocalHost.WorkFlow">
+                            <DirectInput>IF (SELECT MIN(ISJSON(FileBody)) AS IS_JSON FROM [stage1].[exchangeratesapi]) != 1 RAISERROR ('Current file is not valid JSON format', 16, 1)  
+                            </DirectInput>
+                        </ExecuteSQL>
+                        <Dataflow Name = "stage1 to stage2 Currency Rate">
+                            <Transformations>
+                                <OleDbSource Name="stage1 GetResolvedCurrencyList" ConnectionName="LocalHost.WorkFlow">
+                                    <DirectInput>SELECT 
+                                        	 CurrencyId
+                                        	,CurrencyCodeISO3
+                                        	,ExecutionID
+                                        	,[timestamp]
+                                        FROM [stage1].[GetResolvedCurrencyList](?)
+                                    </DirectInput>
+                                        <Parameters>
+                                            <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
+                                        </Parameters>
+                                </OleDbSource>
+                                <OleDbDestination Name="stage2 Currency" ConnectionName="LocalHost.WorkFlow">
+                                    <ExternalTableOutput Table = "[stage2].[Currency]" />
+                                </OleDbDestination>
+                                <OleDbSource Name="stage1 GetExchangeRateList" ConnectionName="LocalHost.WorkFlow">
+                                    <DirectInput>SELECT 
+                                            	  c.CurrencyId
+                                            	 ,c.CurrencyCodeISO3
+                                            	 ,r.[date] AS EffectiveDate
+                                            	 ,(SELECT CurrencyId 
+                                            		FROM stage1.GetResolvedCurrencyList (?) AS Basecurrency
+                                            		WHERE Basecurrency.CurrencyCodeISO3 = r.base) BaseCurrencyId
+                                            	,r.Rate
+                                            	,r.[timestamp]
+                                            	,CAST(GETDATE() AS DATE) AS InsertedDate
+                                            	,r.ExecutionId
+                                            FROM stage1.GetResolvedCurrencyList (?) AS c
+                                            	INNER JOIN stage1.GetExchangeRateList (?) AS r ON c.CurrencyCodeISO3 = r.Currency
+                                    </DirectInput>
+                                        <Parameters>
+                                            <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
+                                            <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
+                                            <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
+                                        </Parameters>
+                                </OleDbSource>
+                                <OleDbDestination Name="stage2 ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                                    <ExternalTableOutput Table = "[stage2].[ExchangeRate]" />
+                                </OleDbDestination>
+                            </Transformations>
+                        </Dataflow>
+                    </Tasks>
+            </Package>
+        </Packages>
+</Biml>
