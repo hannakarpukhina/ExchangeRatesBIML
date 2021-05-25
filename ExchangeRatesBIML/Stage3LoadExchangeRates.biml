@@ -1,13 +1,13 @@
 ﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
      <Connections>
-        <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+        <Connection Name = "DW" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
     </Connections>
         <Packages>
-            <Package ConstraintMode = "Parallel" Name = "Stage3LoadExchangeRateBIML">
+            <Package ConstraintMode = "Parallel" Name = "Stage3LoadExchangeRates">
                 <Tasks>
                     <Dataflow Name = "dim Currency">
                         <Transformations>
-                            <OleDbSource Name="stage2 Currency" ConnectionName="LocalHost.WorkFlow">
+                            <OleDbSource Name="stage2 Currency" ConnectionName="DW">
                                 <DirectInput>SELECT DISTINCT
                                             	 stage2.CurrencyId
                                             	,stage2.CurrencyCodeISO3
@@ -19,7 +19,7 @@
                                             WHERE dim.CurrencyId IS NULL
                                 </DirectInput>
                             </OleDbSource>
-                            <OleDbCommand Name="dim Currency" ConnectionName="LocalHost.WorkFlow">
+                            <OleDbCommand Name="dim Currency" ConnectionName="DW">
                                 <DirectInput>SET IDENTITY_INSERT [dim].[Currency] ON
                                             INSERT INTO [dim].[Currency] (CurrencyId, CurrencyCodeISO3,CurrencyCodeISO2, StartDate, CountryName) 
                                             SELECT DISTINCT
@@ -38,7 +38,7 @@
                     </Dataflow>
                      <Dataflow Name = "sales ExchangeRate">
                         <Transformations>
-                            <OleDbSource Name="stage2 ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                            <OleDbSource Name="stage2 ExchangeRate" ConnectionName="DW">
                                 <DirectInput>SELECT  
                                         	 stage2.CurrencyId
                                         	,stage2.EffectiveDate
@@ -63,7 +63,7 @@
                                         	AND stage2.LastRate = 1
                                 </DirectInput>
                             </OleDbSource>
-                            <OleDbCommand Name="sales ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                            <OleDbCommand Name="sales ExchangeRate" ConnectionName="DW">
                                 <DirectInput>MERGE [sales].[ExchangeRate] AS trg 
                                                 USING (SELECT  
                                             			 stage2.CurrencyId

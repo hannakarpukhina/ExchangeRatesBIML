@@ -7,11 +7,11 @@
         </FlatFileFormat> 
     </FileFormats>
     <Connections>
-        <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+        <Connection Name = "DW" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
         <FlatFileConnection Name="JsonFile" FilePath="" FileFormat="jsonFile" />
           </Connections>
             <Packages>
-                    <Package ConstraintMode = "Linear" Name = "Stage1ExtractExchangeRatesBIML">
+                    <Package ConstraintMode = "Linear" Name = "Stage1ExtractExchangeRates">
                         <Parameters>
                             <Parameter Name = "APIKey" DataType = "String">tteesstt</Parameter>
                             <Parameter Name = "AsOfDate" DataType = "String">latest</Parameter>
@@ -28,7 +28,7 @@
                             <Variable Name="StringFileConnection" DataType="String" EvaluateAsExpression = "true">@[User::BaseFolderPath] +  @[User::GuidSuffixName] +  @[User::AsOfDateSuffixName]</Variable>
                         </Variables>
                             <Tasks>
-                                <ExecuteSQL Name = "Generate guid" ResultSet = "SingleRow" ConnectionName = "LocalHost.WorkFlow">
+                                <ExecuteSQL Name = "Generate guid" ResultSet = "SingleRow" ConnectionName = "DW">
                                    <DirectInput>
                                       SELECT CAST(NEWID() AS VARCHAR(36)) AS GuidSuffixName  
                                     </DirectInput>
@@ -49,7 +49,7 @@
                                                 <Column Name="ExecutionId" DataType="Int16">@[$Package::ExecutionId]</Column>    
                                             </Columns>
                                         </DerivedColumns>
-                                        <OleDbDestination Name="stage1 exchangeratesapi" ConnectionName ="LocalHost.WorkFlow">
+                                        <OleDbDestination Name="stage1 exchangeratesapi" ConnectionName ="DW">
                                             <ExternalTableOutput Table = "[stage1].[ExchangeRatesAPI]" />
                                         </OleDbDestination>
                                     </Transformations>
