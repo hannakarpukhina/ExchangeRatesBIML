@@ -1,6 +1,6 @@
 ﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
     <Packages>
-        <Package ConstraintMode = "Linear" Name = "MainBIML">
+        <Package ConstraintMode = "Linear" Name = "Main">
             <Parameters>
                 <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
             </Parameters>
@@ -24,7 +24,7 @@
                             </ParameterBindings>
                     </ExecutePackage>
                     <ExecutePackage Name="Execute Stage3LoadExchangeRate" DelayValidation="true">
-                        <ExternalProjectPackage Package="Stage3LoadExchangeRate.dtsx"></ExternalProjectPackage>
+                        <ExternalProjectPackage Package="Stage3LoadExchangeRates.dtsx"></ExternalProjectPackage>
                             <ParameterBindings>
                                 <ParameterBinding VariableName="User.ExecutionId" Name="ExecutionId"></ParameterBinding>
                             </ParameterBindings>

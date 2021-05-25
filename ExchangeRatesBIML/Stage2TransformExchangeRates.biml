@@ -1,9 +1,9 @@
 ﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
     <Connections>
-        <Connection Name = "LocalHost.WorkFlow" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+        <Connection Name = "DW" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
     </Connections>
         <Packages>
-            <Package ConstraintMode = "Linear" Name = "Stage2TransformExchangeRatesBIML">
+            <Package ConstraintMode = "Linear" Name = "Stage2TransformExchangeRates">
                 <Parameters>
                     <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
                 </Parameters>
@@ -11,13 +11,13 @@
                     <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
                  </Variables>
                     <Tasks>
-                        <ExecuteSQL Name = "Check if file is valid JSON" ConnectionName = "LocalHost.WorkFlow">
+                        <ExecuteSQL Name = "Check if file is valid JSON" ConnectionName = "DW">
                             <DirectInput>IF (SELECT MIN(ISJSON(FileBody)) AS IS_JSON FROM [stage1].[exchangeratesapi]) != 1 RAISERROR ('Current file is not valid JSON format', 16, 1)  
                             </DirectInput>
                         </ExecuteSQL>
                         <Dataflow Name = "stage1 to stage2 Currency Rate">
                             <Transformations>
-                                <OleDbSource Name="stage1 GetResolvedCurrencyList" ConnectionName="LocalHost.WorkFlow">
+                                <OleDbSource Name="stage1 GetResolvedCurrencyList" ConnectionName="DW">
                                     <DirectInput>SELECT 
                                         	 CurrencyId
                                         	,CurrencyCodeISO3
@@ -29,10 +29,10 @@
                                             <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
                                         </Parameters>
                                 </OleDbSource>
-                                <OleDbDestination Name="stage2 Currency" ConnectionName="LocalHost.WorkFlow">
+                                <OleDbDestination Name="stage2 Currency" ConnectionName="DW">
                                     <ExternalTableOutput Table = "[stage2].[Currency]" />
                                 </OleDbDestination>
-                                <OleDbSource Name="stage1 GetExchangeRateList" ConnectionName="LocalHost.WorkFlow">
+                                <OleDbSource Name="stage1 GetExchangeRateList" ConnectionName="DW">
                                     <DirectInput>SELECT 
                                             	  c.CurrencyId
                                             	 ,c.CurrencyCodeISO3
@@ -53,7 +53,7 @@
                                             <Parameter Name = "@ExecutionId" VariableName = "User.ExecutionId"/>
                                         </Parameters>
                                 </OleDbSource>
-                                <OleDbDestination Name="stage2 ExchangeRate" ConnectionName="LocalHost.WorkFlow">
+                                <OleDbDestination Name="stage2 ExchangeRate" ConnectionName="DW">
                                     <ExternalTableOutput Table = "[stage2].[ExchangeRate]" />
                                 </OleDbDestination>
                             </Transformations>
