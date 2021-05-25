@@ -1,37 +1,37 @@
 ﻿<Biml xmlns="http://schemas.varigence.com/biml.xsd">
     <Connections>
-        <Connection Name = "DW" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
+        <#@ include file="ProjectConnection.biml" #>
     </Connections>
-            <Packages>
-                <Package ConstraintMode = "Linear" Name = "ClearStaging">
-                <Parameters>
-                    <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
-                </Parameters>
-                    <Variables>
-                        <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
-                     </Variables>
+    <Packages>
+        <Package ConstraintMode = "Linear" Name = "ClearStaging">
+            <Parameters>
+                <Parameter Name = "ExecutionId" DataType = "Int64">0</Parameter>
+            </Parameters>
+                <Variables>
+                    <Variable Name="ExecutionId" DataType="Int64" EvaluateAsExpression = "true">@[$Package::ExecutionId] != 0 ? @[$Package::ExecutionId] : -1 * (DT_I8) REPLACE(REPLACE(REPLACE(REPLACE(SUBSTRING((DT_WSTR, 30)GETDATE() ,1,21),"-","")," ",""),":",""),".","")</Variable>
+                 </Variables>
                     <Tasks>
-                    <ExecuteSQL Name = "Clear Stage1" ConnectionName = "DW">
-                        <DirectInput>
-                          DELETE FROM [stage1].[ExchangeRatesAPI] WHERE ExecutionId = ?  
-                        </DirectInput>
-                        <Parameters>
-                            <Parameter Name = "0" DataType="Int64" VariableName = "User.ExecutionId"/>
-                        </Parameters>
-                    </ExecuteSQL>
-                    <ExecuteSQL Name ="Clear Stage2" ConnectionName = "DW">
-                        <DirectInput>
-                          DELETE FROM [stage2].[Currency]
-                          WHERE ExecutionId = ?
-                          DELETE FROM [stage2].[ExchangeRate]
-                          WHERE ExecutionId = ?  
-                        </DirectInput>
+                        <ExecuteSQL Name = "Clear Stage1" ConnectionName = "DW">
+                            <DirectInput>
+                              DELETE FROM [stage1].[ExchangeRatesAPI] WHERE ExecutionId = ?  
+                            </DirectInput>
                             <Parameters>
-                            <Parameter Name = "0" DataType="Int64" VariableName = "User.ExecutionId"/>
-                            <Parameter Name = "1" DataType="Int64" VariableName = "User.ExecutionId"/>
-                        </Parameters>
-                    </ExecuteSQL> 
-                </Tasks>
-                </Package>
-            </Packages>
+                                <Parameter Name = "0" DataType="Int64" VariableName = "User.ExecutionId"/>
+                            </Parameters>
+                        </ExecuteSQL>
+                        <ExecuteSQL Name ="Clear Stage2" ConnectionName = "DW">
+                            <DirectInput>
+                              DELETE FROM [stage2].[Currency]
+                              WHERE ExecutionId = ?
+                              DELETE FROM [stage2].[ExchangeRate]
+                              WHERE ExecutionId = ?  
+                            </DirectInput>
+                                <Parameters>
+                                <Parameter Name = "0" DataType="Int64" VariableName = "User.ExecutionId"/>
+                                <Parameter Name = "1" DataType="Int64" VariableName = "User.ExecutionId"/>
+                            </Parameters>
+                        </ExecuteSQL> 
+                    </Tasks>
+            </Package>
+    </Packages>
 </Biml>

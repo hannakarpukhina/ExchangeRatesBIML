@@ -1,0 +1,1 @@
+﻿<Connection CreateInProject="true" Name = "DW" ConnectionString = "Data Source =.;Initial Catalog=WorkFlow;Provider=SQLNCLI11.1;Integrated Security=SSPI;Auto Translate=False;"/>
